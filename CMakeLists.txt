@@ -8,4 +8,4 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 set(CMAKE_C_FLAGS_RELEASE "-O0 -march=rv64gcv -mabi=lp64d")
 
-add_executable(archiver src/main.c src/LZ77.c src/Huffman.c src/Node_Heap.c)
+add_executable(archiver src/main.c src/LZ77.c src/Huffman.c src/Node_Heap.c src/Internal/Huffman_Internal_Encoding.c src/Internal/Huffman_Internal_Decoding.c)

@@ -47,21 +47,20 @@ uint64_t LZ77_ENCODE(const char* src, uint64_t size, char* dst){
 }
 
 uint64_t LZ77_DECODE(const char* src, uint64_t size, char* dst){
-
+    uint64_t pos_src = 0;
     char* start = dst;
-    while(*src){
-        const char mode = *src;
+
+    while(pos_src<size){
+        const char mode = src[pos_src++];
         if(mode=='L'){
-            src++;
-            *dst=(*src++);
+            *dst=src[pos_src++];
             dst++;
         }
         else if(mode=='R'){
-            src++;
             int offset, len;
             char symbol;
 
-            sscanf(src, "%d,%d,%c", &offset, &len, &symbol);
+            sscanf(&src[pos_src], "%d,%d,%c", &offset, &len, &symbol);
 
             for (int i = 0; i < len; i++) {
                 dst[i] = dst[i - offset];
@@ -69,7 +68,7 @@ uint64_t LZ77_DECODE(const char* src, uint64_t size, char* dst){
             dst += len;
             
             
-            while(*src && *src!='R' && *src!='L')src++;
+            while(pos_src<size && src[pos_src]!='R' && src[pos_src]!='L')pos_src++;
         }
     }
     
