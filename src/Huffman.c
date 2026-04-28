@@ -1,6 +1,7 @@
 #include "Huffman.h"
 #include "Internal/Huffman_Internal_Encoding.h"
 #include "Internal/Huffman_Internal_Decoding.h"
+#include <string.h>
 
 #define TRIGGER_MASK ((1ULL)<<63)
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -85,11 +86,32 @@ uint64_t huffman_encode(const uint8_t* src, uint64_t size, uint8_t* dst){
 uint64_t huffman_decode(const uint8_t* src, uint64_t size, uint8_t* dst){
     //read header
     struct Data map[MAX_SYMBOLS];
+    struct Node arr[MAX_SYMBOLS];
+
+    memset(map, 0, sizeof(map));
+
     int16_t table[MAX_CODE_LEN][1<<12];
     memset(table, -1, sizeof(table));
     uint64_t bits = 0;
 
-    src = read_header(src, map, table, &bits);
+    src = read_header(src, arr);
+
+    //building tree and codes
+    qsort(arr, MAX_SYMBOLS, sizeof(struct Node), compare_huffman);
+
+    //building tree
+    struct Node pool[MAX_NODES];
+    struct Node* root = build_huffman_tree(arr, pool);
+
+    //building codes
+    bits = generate_codes(root, map);
+
+    for(int i = 0; i<MAX_SYMBOLS; i++){
+        if(map[i].len!=0){
+            table[map[i].len][map[i].code]=i;
+        }
+    }
+
     //encoding
     uint64_t dst_position = 0;
     uint64_t word = 0, word_len = 0;

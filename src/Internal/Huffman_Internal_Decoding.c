@@ -1,32 +1,28 @@
 #include "Huffman_Internal_Decoding.h"
+#include "Huffman_Internal_Encoding.h"
+#include "Huffman_Internal_Includes.h"
+#include <string.h>
 
-const uint8_t* read_header(const uint8_t* src, struct Data* map, 
-                           int16_t table[][1<<MAX_CODE_LEN], uint64_t* bits) {
+const uint8_t* read_header(const uint8_t* src, struct Node* arr) {
+    
+    for (int i = 0; i < MAX_SYMBOLS; i++) {
+        arr[i].c = (unsigned char)i;
+        arr[i].freq = 0;
+        arr[i].left = arr[i].right = NULL;
+    }
+
     int active_fields = 0;
-    int advance;
-    sscanf((char*)src, "%d %llu%n", &active_fields, (unsigned long long*)bits, &advance);
-    src+=advance;
-
+    memcpy(&active_fields, src, sizeof(int));
+    src+=sizeof(int);
+    struct header_package pkg;
+    
     for (int i = 0; i < active_fields; i++) {
-        int symbol;
-        uint64_t code;
-        uint8_t len;
-        
-        sscanf((char*)src, "%d %llu %hhu%n", &symbol, (unsigned long long*)&code, &len, &advance);
-        src += advance;
-        
-        map[symbol].code = code;
-        map[symbol].len = len;
+        memcpy(&pkg, src, sizeof(struct header_package));
+        src+=sizeof(struct header_package);
+        arr[pkg.c].freq=pkg.freq;
+    }
 
-        table[len][code]=symbol;
-    }
-    while(1){
-        if(*src=='|'){
-            src++;
-            break;
-        }
-        src++;
-    }
+    
     
     return src;
 }

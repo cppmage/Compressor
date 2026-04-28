@@ -1,4 +1,7 @@
 #include "Huffman_Internal_Encoding.h"
+#include <stdatomic.h>
+#include <stdint.h>
+#include <string.h>
 
 int compare_huffman(const void *a, const void *b) {
     const struct Node *nodeA = (const struct Node *)a;
@@ -13,6 +16,7 @@ void bfs(struct Node* cur, uint64_t code, struct Data* map, uint64_t* bits, uint
     if(cur->left==NULL && cur->right==NULL){
         map[cur->c].code=code;
         map[cur->c].len = depth;
+        map[cur->c].freq=cur->freq;
         (*bits)+=map[cur->c].len*cur->freq;
         return;
     }
@@ -62,15 +66,20 @@ uint64_t generate_codes(struct Node* root, struct Data* map) {
 
 uint8_t* write_header(uint8_t* dst, const struct Data* map, uint64_t bits) {
     int active_fields = 0;
+    struct header_package pkg;
     for(int i = 0; i<MAX_SYMBOLS; i++){
         active_fields+=(map[i].len!=0);
     }
-    dst+=sprintf((char*)dst, "%d %llu ", active_fields, (unsigned long long)bits);
+    memcpy(dst, &active_fields, sizeof(int));
+    dst+=sizeof(int);
     for(int i = 0; i<MAX_SYMBOLS; i++){
         if(map[i].len!=0){
-            dst+=sprintf((char*)dst, "%d %llu %hhu ", i, (unsigned long long)map[i].code, map[i].len);
+           pkg.c=i;
+           pkg.freq = map[i].freq;
+           memcpy(dst, &pkg, sizeof(struct header_package));
+           dst+=sizeof(struct header_package);
         }
     }
-    (*dst++)='|';
+    
     return dst;
 }

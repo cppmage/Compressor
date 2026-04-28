@@ -14,4 +14,5 @@ struct Node{
 struct Data{
     uint64_t code;
     uint8_t len;
+    uint32_t freq;
 };  
