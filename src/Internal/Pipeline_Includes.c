@@ -7,17 +7,11 @@
 #include <linux/futex.h>    
 #include <errno.h> 
 
-void wait_status_of_chunk(ChunkData* chunk){
+void wait_status_of_chunk(ChunkData* chunk, ChunkStatus awaited){
     while(1){
         ChunkStatus current = atomic_load_explicit(&chunk->status, memory_order_acquire);
-        if(current==CHUNK_EXIT || current==CHUNK_READY_TO_WRITE)return;
-
-        long long res = syscall(SYS_futex, &chunk->status, FUTEX_WAIT, current, NULL, NULL, 0);
-
-        if (res == -1 && errno == EAGAIN) {
-            continue; 
-        }
-
+        if(current==CHUNK_EXIT || current==awaited)return;
+        syscall(SYS_futex, &chunk->status, FUTEX_WAIT, current, NULL, NULL, 0);
     }
 }
 

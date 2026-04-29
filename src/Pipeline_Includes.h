@@ -32,7 +32,7 @@ typedef struct{
 
     uint8_t* src;
     uint64_t size;
-    uint8_t* dst;
+    uint8_t** dst;
 }ChunkData;
 
 typedef struct {
