@@ -11,6 +11,7 @@ int compare_huffman(const void *a, const void *b) {
     if (nodeA->freq < nodeB->freq) return 1;
     return 0;
 }
+
 void bfs(struct Node* cur, uint64_t code, struct Data* map, uint64_t* bits, uint8_t depth){
     if (cur == NULL) return;
     if(cur->left==NULL && cur->right==NULL){

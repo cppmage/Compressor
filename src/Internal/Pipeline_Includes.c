@@ -7,7 +7,7 @@
 #include <linux/futex.h>    
 #include <errno.h> 
 
-void wait_status_of_chunk(ChunkData* chunk, ChunkStatus awaited){
+void wait_release_of_chunk(ChunkData* chunk, ChunkStatus awaited){
     while(1){
         ChunkStatus current = atomic_load_explicit(&chunk->status, memory_order_acquire);
         if(current==CHUNK_EXIT || current==awaited)return;
@@ -43,11 +43,11 @@ void wake_up_thread(ThreadController* controller){
 void init_chunk_pool(ChunkPool* pool){
     memset(pool->pool, 0, sizeof(pool->pool));
     for(int i = 0; i<NUMBER_OF_CHUNKS; i++){
-        pool[i].data->dst=NULL;
-        pool[i].data->src=NULL;
-        pool[i].data->size=0;
-        pool[i].data->status=CHUNK_FREE;
-        pool[i].data->workType=ENCODE;
+        pool->data[i].dst=NULL;
+        pool->data[i].src=NULL;
+        pool->data[i].size=0;
+        pool->data[i].status=CHUNK_FREE;
+        pool->data[i].workType=ENCODE;
     }
 }
 
@@ -59,3 +59,14 @@ void init_thread_pool(ThreadPool* pool){
     }
 }
 
+
+void slicer_sleep(SlicerController* controller){
+    SlicerStatus expected = SLICER_FREE; 
+    if (!atomic_compare_exchange_strong(&controller->status, &expected, THREAD_FREE)) {
+        if (expected != SLICER_FREE) return; 
+    }
+    syscall(SYS_futex, &controller->status, FUTEX_WAIT, SLICER_FREE, NULL, NULL, 0);
+}
+void awake_slicer(SlicerController* controller){
+    syscall(SYS_futex, &controller->status, FUTEX_WAKE, 1, NULL, NULL, 0);
+}

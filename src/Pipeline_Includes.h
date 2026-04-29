@@ -2,10 +2,22 @@
 #include <stdint.h>
 #include <stdatomic.h>
 #include <pthread.h>
+#include <stdalign.h>
 
 #define CHUNK_SIZE (1ULL<<18)
+#define HEADER_MAX_SIZE 1556
+
+#define SRC_CHUNK_SIZE CHUNK_SIZE-HEADER_MAX_SIZE
+
 #define NUMBER_OF_CHUNKS 4
 #define NUMBER_OF_THREADS 2
+#define FILENAME_MAX_LEN 256
+#define NUMBER_OF_FILES 128
+
+typedef struct{
+    alignas(64) _Atomic uint64_t chunks_from_slicer;
+    alignas(64) _Atomic uint64_t chunks_from_linker; 
+}SLICER_LINKER_SHARED;
 
 typedef enum {
     CHUNK_FREE,
@@ -24,6 +36,13 @@ typedef enum {
     ENCODE,
     DECODE
 }WorkType;
+
+typedef enum{
+    SLICER_FREE,
+    SLICER_WORK,
+    SLICER_CANCELL,
+    SLICER_EXIT
+}SlicerStatus;
 
 typedef struct{
     _Atomic ChunkStatus status;
@@ -51,6 +70,14 @@ typedef struct{
     ThreadController pool[NUMBER_OF_THREADS];
 }ThreadPool;
 
+typedef struct{
+    _Atomic SlicerStatus status;
+
+    char filinemaes[NUMBER_OF_FILES][FILENAME_MAX_LEN];
+    int to_process;
+    WorkType type;
+}SlicerController;
+
 void wait_release_of_chunk(ChunkData* chunk, ChunkStatus awaited);
 void wake_up_chunk(ChunkData* chunk);
 
@@ -59,3 +86,6 @@ void wake_up_thread(ThreadController* controller);
 
 void init_chunk_pool(ChunkPool* pool);
 void init_thread_pool(ThreadPool* pool);
+
+void slicer_sleep(SlicerController* controller);
+void awake_slicer(SlicerController* controller);

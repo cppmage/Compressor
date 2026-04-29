@@ -1,9 +1,10 @@
-#pragma once
 #include "Pipeline_Includes.h"
 
 typedef struct{
+    SlicerController* controller;
     ChunkPool* chunk_pool;
     SLICER_LINKER_SHARED* shared;
-}LinkerArgs;
+    ThreadPool* thread_pool;
+}SlicerArgs;
 
-void thread_linker(void* arg);
+void thread_slicer(void* arg);

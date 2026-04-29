@@ -9,6 +9,7 @@ void thread_linker(void* arg){
     unsigned int cur_chunk_id = 0;
     ChunkPool* chunks_carrier=args->chunk_pool;
     ChunkData* data = chunks_carrier->data;
+    SLICER_LINKER_SHARED* shared=args->shared;
 
     while(1){
         if(cur_chunk_id>=NUMBER_OF_CHUNKS)cur_chunk_id=0;
@@ -27,5 +28,6 @@ void thread_linker(void* arg){
         atomic_store_explicit(&current_data->status, CHUNK_FREE, memory_order_release);
         wake_up_chunk(current_data);
         cur_chunk_id++;
+        atomic_fetch_add_explicit(&shared->chunks_from_linker, 1, memory_order_acq_rel);
     }
 }
