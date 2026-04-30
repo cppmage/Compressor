@@ -37,6 +37,8 @@ void thread_worker(void* arg){
 
         atomic_store_explicit(&data->status, CHUNK_READY_TO_WRITE, memory_order_release);
         wake_up_chunk(data);
+
+        atomic_store_explicit(&controller->status, THREAD_FREE, memory_order_release);
     }
 
 }

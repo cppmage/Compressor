@@ -7,7 +7,7 @@
 #define CHUNK_SIZE (1ULL<<18)
 #define HEADER_MAX_SIZE 1556
 
-#define SRC_CHUNK_SIZE CHUNK_SIZE-HEADER_MAX_SIZE
+#define SRC_CHUNK_SIZE ((CHUNK_SIZE)-HEADER_MAX_SIZE)
 
 #define NUMBER_OF_CHUNKS 4
 #define NUMBER_OF_THREADS 2
@@ -16,7 +16,8 @@
 
 typedef struct{
     alignas(64) _Atomic uint64_t chunks_from_slicer;
-    alignas(64) _Atomic uint64_t chunks_from_linker; 
+    alignas(64) _Atomic uint64_t chunks_from_linker;
+    alignas(64) uint64_t final_size;
 }SLICER_LINKER_SHARED;
 
 typedef enum {
@@ -61,9 +62,18 @@ typedef struct {
     pthread_t thread;
 }ThreadController;
 
+typedef struct {
+    uint8_t* ptr;
+    uint64_t ptr_size;
+    uint64_t bytes;
+    uint64_t chunks;
+}MetaData;
+
 typedef struct{
     uint8_t pool[NUMBER_OF_CHUNKS][2][CHUNK_SIZE];
     ChunkData data[NUMBER_OF_CHUNKS];
+
+    MetaData meta_data[NUMBER_OF_CHUNKS];
 }ChunkPool;
 
 typedef struct{

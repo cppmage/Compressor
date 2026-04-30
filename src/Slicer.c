@@ -27,6 +27,7 @@ void thread_slicer(void* arg){
     SlicerController* controller = args->controller;
     ChunkPool* chunks_carrier=args->chunk_pool;
     ChunkData* data = chunks_carrier->data;
+    MetaData* meta_data=chunks_carrier->meta_data;
     ThreadPool* thread_pool=args->thread_pool;
     SLICER_LINKER_SHARED* shared=args->shared;
 
@@ -36,7 +37,8 @@ void thread_slicer(void* arg){
     int read_files = 0, write_files = 0;
 
     while(1){
-        
+        shared->final_size = 0;
+
         slicer_sleep(controller);
         if(atomic_load_explicit(&controller->status, memory_order_acquire)==SLICER_EXIT)return;
 
@@ -65,11 +67,6 @@ void thread_slicer(void* arg){
             fHandlers_WRITE[0].fd=dst_fd;
 
             for(int i = 0; i<to_process; i++){
-                
-                memcpy(fHandlers_WRITE[0].ptr, files[i], FILENAME_MAX_LEN);
-                fHandlers_WRITE[0].ptr+=FILENAME_MAX_LEN;
-                memcpy(fHandlers_WRITE[0].ptr, &fHandlers_READ[i].file_size, sizeof(uint64_t));
-                fHandlers_WRITE[0].ptr+=sizeof(uint64_t);
 
                 int fd_srci = open(files[i], O_RDONLY);
                 
@@ -88,7 +85,10 @@ void thread_slicer(void* arg){
                     file_size-=current_chunk_size;
 
                     if(cur_chunk_id>=NUMBER_OF_CHUNKS)cur_chunk_id=0;
+
+
                     ChunkData* current_data = data+cur_chunk_id;
+                    MetaData* current_metadata = meta_data+cur_chunk_id;
                     wait_release_of_chunk(current_data, CHUNK_FREE);
                     if(atomic_load_explicit(&current_data->status, memory_order_acquire)==CHUNK_EXIT)goto exit_label;
 
@@ -98,6 +98,16 @@ void thread_slicer(void* arg){
                     current_data->dst=&fHandlers_WRITE[0].ptr;
                     fHandlers_READ[i].ptr+=current_chunk_size;
                     
+                    //fill metadata
+                    if(j!=0)[[clang::likely]]{
+                        current_metadata->ptr=NULL;
+                    }else{
+                        current_metadata->ptr=(uint8_t*)files[i];
+                        current_metadata->ptr_size=FILENAME_MAX_LEN;
+                        current_metadata->chunks=total_chunks;
+                        current_metadata->bytes=fHandlers_READ[i].file_size;
+                    }
+
                     //punch free thread
                     int thread_id = 0;
                     while(1){
@@ -126,6 +136,10 @@ void thread_slicer(void* arg){
 
         while(atomic_load_explicit(&shared->chunks_from_slicer, memory_order_acquire)!=atomic_load_explicit(&shared->chunks_from_linker, memory_order_acquire)){
             __asm__ volatile("pause");
+        }
+
+        if(type==ENCODE){
+            ftruncate(fHandlers_WRITE[0].fd, shared->final_size);
         }
 
         for(int i = 0; i<read_files; i++){
