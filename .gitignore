@@ -1,3 +1,5 @@
 /.vscode
 /build-debug
 /build
+gdb-sudo.sh
+output.cmage
